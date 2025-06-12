@@ -48,16 +48,6 @@
 			path = ExpiryScanner;
 			sourceTree = "<group>";
 		};
-		ECBE8BF92DF675FE00EB96EF /* ExpiryScannerTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ExpiryScannerTests;
-			sourceTree = "<group>";
-		};
-		ECBE8C032DF675FE00EB96EF /* ExpiryScannerUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ExpiryScannerUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,8 +79,6 @@
 			isa = PBXGroup;
 			children = (
 				ECBE8BE82DF675FD00EB96EF /* ExpiryScanner */,
-				ECBE8BF92DF675FE00EB96EF /* ExpiryScannerTests */,
-				ECBE8C032DF675FE00EB96EF /* ExpiryScannerUITests */,
 				ECBE8BE72DF675FD00EB96EF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -143,9 +131,6 @@
 			dependencies = (
 				ECBE8BF82DF675FE00EB96EF /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				ECBE8BF92DF675FE00EB96EF /* ExpiryScannerTests */,
-			);
 			name = ExpiryScannerTests;
 			packageProductDependencies = (
 			);
@@ -165,9 +150,6 @@
 			);
 			dependencies = (
 				ECBE8C022DF675FE00EB96EF /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				ECBE8C032DF675FE00EB96EF /* ExpiryScannerUITests */,
 			);
 			name = ExpiryScannerUITests;
 			packageProductDependencies = (
