@@ -1,0 +1,56 @@
+# Xcode
+.DS_Store
+build/
+DerivedData/
+*.xcworkspace
+*.xcuserstate
+*.xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcodeproj/project.xcworkspace/
+*.xcuserdatad/
+*.xcscmblueprint
+
+
+# Swift Package Manager
+.swiftpm
+.build/
+Package.resolved
+
+# CocoaPods (if you use it)
+Pods/
+Podfile.lock
+
+# Carthage (if you ever use it)
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Archive
+*.xcarchive
+
+# Crashlytics / Firebase
+crashlytics-build.properties
+
+# Xcode automatic backup files
+*.xcscmblueprint
+
+# User-specific files
+*.swp
+*~.nib
+*.orig
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# SwiftPM Xcode integration
+.idea/
+
+# General macOS
+*.DS_Store
+
