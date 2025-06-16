@@ -20,6 +20,7 @@ struct HomeView: View {
                 //Buat Frame Bracket
                 scannerFrameView
                    .frame(width: 280, height: 500)
+                   .padding(.bottom, 20)
                 
                 Text(viewModel.guidanceText)
                    .font(.headline)
@@ -34,9 +35,10 @@ struct HomeView: View {
                 // New instructional text from the design.
                 Text("Tombol mulai terletak di bawah screen")
                    .font(.body)
-                   .foregroundColor(.white)
+                   .fontWeight(.bold)
+                   .foregroundColor(.red)
                    .multilineTextAlignment(.center)
-                   .padding(.horizontal, 40)
+                   .padding(.top, 20)
                    .padding(.bottom, 20)
                 
                 // New "Stop Scanning" button from the design.
@@ -63,8 +65,6 @@ struct HomeView: View {
        .onAppear{
             let text = "Arahkan kamera ke produk"
             UIAccessibility.post(notification:.screenChanged, argument: text)
-            // Assuming you have a custom FeedbackManager class.
-            // FeedbackManager.shared.speak(text: text)
         }
        .alert("Hasil Pemindaian", isPresented: $viewModel.showAlert){
             Button("Pindai lagi"){
@@ -82,7 +82,7 @@ struct HomeView: View {
         GeometryReader { geometry in
             let strokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round)
             let dashedStrokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round, dash: [1, 2])
-            let color = Color.red
+            let color = Color.white
 
             ZStack {
                 // Corner Brackets
