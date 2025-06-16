@@ -46,7 +46,8 @@ struct CameraView: View {
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-    @ObservedObject var viewModel: CameraViewModel
+//    @ObservedObject
+    var viewModel: CameraViewModel
     
     func makeUIViewController(context: Context) -> CameraViewController {
         CameraViewController(viewModel: viewModel)
