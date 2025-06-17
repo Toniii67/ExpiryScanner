@@ -23,6 +23,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var isProcessing = true
     var guidanceText = "Arahkan kamera ke produk"
     var isSessionRunning = false
+    var stackDates: [Date] = []
     
     // MARK: - Haptic Enum
     enum CustomHapticType {
@@ -143,13 +144,18 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         
         var request = self.visionRequest
         
+        let focusedTextRequest = VNRecognizeTextRequest(completionHandler: handleFocusedTextForDate)
+        focusedTextRequest.recognitionLevel = .accurate
+
         if let dateArea = self.detectedDateArea {
-            let focusedTextRequest = VNRecognizeTextRequest(completionHandler: handleFocusedTextForDate)
-            focusedTextRequest.recognitionLevel = .accurate
             focusedTextRequest.regionOfInterest = dateArea
-            request.append(focusedTextRequest)
+        } else {
+            focusedTextRequest.regionOfInterest = CGRect(x: 0, y: 0, width: 1, height: 1) // full frame
         }
-        
+    
+        request.append(focusedTextRequest)
+
+    
         let orientation = getImageOrientation()
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation).perform(request)
     }
@@ -253,29 +259,74 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    private func handleFocusedTextForDate(request: VNRequest, error: Error?){
+    private func handleFocusedTextForDate(request: VNRequest, error: Error?) {
         print("DEBUG: handleFocusedTextForDate called")
+
         if let error = error {
             print("ERROR in text recognition: \(error)")
-            playHaptic(type: .error)
+            return
         }
+
+        let recognizedText = (request.results as? [VNRecognizedTextObservation] ?? [])
+            .compactMap { $0.topCandidates(1).first?.string }
+            .joined(separator: " ")
         
-        let text = (request.results as? [VNRecognizedTextObservation] ?? []).compactMap { $0.topCandidates(1).first?.string}.joined(separator: " ")
-        print("DEBUG: Recognized text: '\(text)'")
+        print("DEBUG: Recognized text: '\(recognizedText)'")
+
+        classifyText(recognizedText)
+    }
+
+    private func classifyText(_ text: String) {
+        print("DEBUG: Classifying text: '\(text)'")
         
-        if let date = DateParser.findDate(in: text){
-            print("DEBUG: Parsed date: \(date)")
-            DispatchQueue.main.async {
-                self.detectedExpiryDate = date
-                self.checkForCompletion()
+        do {
+            let model = try MyTextClassifier(configuration: MLModelConfiguration())
+            let prediction = try model.prediction(text: text)
+            print("DEBUG: Classification result: \(prediction.label)")
+            guard text.count > 8 else {
+                print("DEBUG: Skipping classification - text too short")
+                return
             }
-        } else {
-            print("DEBUG: No date found in text")
+            
+            switch prediction.label {
+            case "expiry","both":
+                if let date = DateParserAdvanced.findDate(in: text) {
+                    print("DEBUG: Parsed expiry date: \(date)")
+                    DispatchQueue.main.async {
+                        self.detectedExpiryDate = date
+                        self.stackDates.append(date)
+                        self.checkForCompletion()
+                    }
+                }
+            default:
+                print("DEBUG: No expiry info found")
+            }
+        } catch {
+            print("ERROR: Failed to classify text - \(error)")
         }
     }
     
-    private func checkForCompletion() {
-        //nama belom masuk emang?
+    func modeDate(from dates: [Date]) -> Date? {
+        let counts = dates.reduce(into: [:]) { counts, date in
+            counts[date, default: 0] += 1
+        }
+        return counts.max { $0.value < $1.value }?.key
+    }
+
+    private func checkForCompletion(){
+        print("DEBUG: checkForCompletion called")
+        if stackDates.count < 10 {
+            print("DEBUG: Not enough dates to complete")
+            return
+        } else {
+            print(stackDates)
+        }
+         
+         if let mostCommonDate = modeDate(from: stackDates) {
+             print("Most common date: \(mostCommonDate)")
+             detectedExpiryDate = mostCommonDate
+             stackDates = []
+         }
         guard let productName = detectedProductName, let date = detectedExpiryDate else { return }
         
         isProcessing = false
@@ -298,6 +349,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         detectedExpiryDate = nil
         detectedDateArea = nil
         showAlert = false
+        stackDates = []
         startSession()
     }
     
