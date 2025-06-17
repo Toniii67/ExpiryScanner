@@ -479,3 +479,165 @@ struct DateParser {
         return nil
     }
 }
+struct DateParserAdvanced {
+    static func findDate(in text: String) -> Date? {
+        let lowercased = text.lowercased()
+        
+        // Guard against known production date markers
+        let productionIndicators = ["md", "mfg", "prod", "production", "nd1", "hd", "nd", "1d", "manufactured", "manuf"]
+        var cleanedText = lowercased.replacingOccurrences(of: ":", with: "")
+        print("DEBUG: cleanedText:\(cleanedText)")
+        for keyword in productionIndicators {
+            let pattern = "\\b" + keyword + "\\b(\\s+\\S+){1,3}" // Match keyword + 1–3 words
+            if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+                let range = NSRange(location: 0, length: cleanedText.utf16.count)
+                cleanedText = regex.stringByReplacingMatches(in: cleanedText, options: [], range: range, withTemplate: "")
+            }
+        }
+
+        let formatterVariants: [(DateFormatter, String)] = [
+            // MM/YYYY or MM-YYYY or MM.YYYY
+            (makeFormatter("MM/yyyy"), #"\b(0?[1-9]|1[0-2])[/\-. ]?(20[2-4][0-9])\b"#),
+
+            // YYYY/MM or YYYY-MM or YYYY.MM
+            (makeFormatter("yyyy/MM"), #"\b(20[2-4][0-9])[/\-. ]?(0?[1-9]|1[0-2])\b"#),
+
+            // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+            (makeFormatter("dd/MM/yyyy"), #"\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](20[2-4][0-9])\b"#),
+
+            // YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+            (makeFormatter("yyyy/MM/dd"), #"\b(20[2-4][0-9])[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b"#),
+
+            // MMM YYYY with international variants (august 2028, agustus 2028)
+            (makeFormatter("MMM yyyy"), #"\b(jan|feb|mar|apr|may|mei|jun|jul|aug|agu|sep|oct|okt|nov|dec|des|january|february|march|april|june|july|august|september|october|november|december)\s+(20[2-4][0-9])\b"#),
+
+            // DD MMM YYYY
+            (makeFormatter("dd MMM yyyy"), #"\b(\d{1,2})\s+(jan|feb|mar|apr|may|mei|jun|jul|aug|agu|sep|oct|okt|nov|dec|des|january|february|march|april|june|july|august|september|october|november|december)\s+(20[2-4][0-9])\b"#),
+
+            // Compact format: DDMMYYYY (e.g. 01062028)
+            (makeFormatter("ddMMyyyy"), #"\b(\d{2})(\d{2})(20[2-4][0-9])\b"#),
+            
+            // MM YY (e.g., 11 25 → Nov 2025)
+            (makeFormatter("MM yy"), #"\b(0?[1-9]|1[0-2])\s+([2-9][0-9])\b"#)
+
+        ]
+
+        var candidateDates: [Date] = []
+        let calendar = Calendar.current
+        let now = Date()
+        let currentYear = calendar.component(.year, from: now)
+        for (formatter, pattern) in formatterVariants {
+            let matches = matchesForRegex(in: cleanedText, regex: pattern)
+            for match in matches {
+                let normalized = match.replacingOccurrences(of: ".", with: "/")
+                                         .replacingOccurrences(of: "-", with: "/")
+                                         .replacingOccurrences(of: "  ", with: " ")
+                if let date = formatter.date(from: normalized) {
+                    let year = calendar.component(.year, from: date)
+                    if abs(year - currentYear) <= 20 {
+                        candidateDates.append(date)
+                    } else {
+                        print("DEBUG: Rejected date \(date) — too far from current year \(currentYear)")
+                    }
+                }
+            }
+        }
+
+        if candidateDates.isEmpty {
+            print("DEBUG: No valid date parsed")
+            return nil
+        }
+
+        let latestDate = candidateDates.max()
+        print("DEBUG: Candidate dates: \(candidateDates.map { "\($0)" })")
+        return latestDate
+    }
+
+
+    static func makeFormatter(_ format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = format
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }
+    private static func matchesForRegex(in text: String, regex: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: regex, options: []) else { return [] }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.matches(in: text, options: [], range: range)
+            .compactMap { Range($0.range, in: text).map { String(text[$0]) } }
+    }
+//    static func containsPossibleDate(_ text: String) -> Bool {
+//        let lowercased = text.lowercased()
+//        
+//        // 1. Check for common date patterns like MM/YY or MM/YYYY
+//        let datePattern = #"\b(0?[1-9]|1[0-2])[/\-. ]?\d{2,4}\b"#
+//        if lowercased.range(of: datePattern, options: .regularExpression) != nil {
+//            return true
+//        }
+//        
+//        // 2. Check if any valid 4-digit year (in reasonable range) is present
+//        let yearPattern = #"\b(20\d{2})\b"#
+//        let matches = matchesForRegex(in: lowercased, regex: yearPattern)
+//        let currentYear = Calendar.current.component(.year, from: Date())
+//        for match in matches {
+//            if let year = Int(match), year >= currentYear, year <= currentYear + 20 {
+//                return true
+//            }
+//        }
+//
+//        // 3. Still no match? Return false
+//        return false
+//    }
+    
+    /// Extracts the *latest* date from multiple candidates.
+//    static func findLatestDate(in text: String) -> Date? {
+//        return findAllDates(in: text).max()
+//    }
+    
+    /// Core logic: Parses all valid dates in "MM yyyy", "MMM yyyy", or "yyyy" patterns.
+//    private static func findAllDates(in text: String) -> [Date] {
+//        let patterns = [
+//            #"(?i)\b(\d{2})[ /-]?(\d{4})\b"#,      // e.g., 01/2025, 01 2025
+//            #"(?i)\b([a-z]{3,})[ /-]?(\d{2,4})\b"#, // e.g., JAN 25, March 2025
+//            #"(?i)\b(\d{4})\b"#                     // e.g., just year
+//        ]
+//
+//        let matchRanges = patterns.flatMap { pattern -> [NSTextCheckingResult] in
+//            let regex = try? NSRegularExpression(pattern: pattern, options: [])
+//            return regex?.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text)) ?? []
+//        }
+//
+//        let nsText = text as NSString
+//        var dates: [Date] = []
+//
+//        for match in matchRanges {
+//            let matchString = nsText.substring(with: match.range)
+//            if let date = parseDate(from: matchString) {
+//                dates.append(date)
+//            }
+//        }
+//
+//        return dates
+//    }
+    /// Attempts to parse various date string formats
+//    private static func parseDate(from string: String) -> Date? {
+//        let formats = [
+//            "MM yyyy",
+//            "MMM yyyy",
+//            "MMMM yyyy",
+//            "yyyy",
+//        ]
+//
+//        for format in formats {
+//            let formatter = DateFormatter()
+//            formatter.locale = Locale(identifier: "en_US_POSIX")
+//            formatter.dateFormat = format
+//            if let date = formatter.date(from: string.uppercased()) {
+//                return date
+//            }
+//        }
+//
+//        return nil
+//    }
+}
