@@ -23,6 +23,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     var isProcessing = true
     var guidanceText = "Arahkan kamera ke produk"
     var isSessionRunning = false
+    var stackDates: [Date] = []
     
     // MARK: - Haptic Enum
     enum CustomHapticType {
@@ -293,6 +294,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
                     print("DEBUG: Parsed expiry date: \(date)")
                     DispatchQueue.main.async {
                         self.detectedExpiryDate = date
+                        self.stackDates.append(date)
                         self.checkForCompletion()
                     }
                 }
@@ -303,10 +305,28 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             print("ERROR: Failed to classify text - \(error)")
         }
     }
-
+    
+    func modeDate(from dates: [Date]) -> Date? {
+        let counts = dates.reduce(into: [:]) { counts, date in
+            counts[date, default: 0] += 1
+        }
+        return counts.max { $0.value < $1.value }?.key
+    }
 
     private func checkForCompletion(){
         print("DEBUG: checkForCompletion called")
+        if stackDates.count < 10 {
+            print("DEBUG: Not enough dates to complete")
+            return
+        } else {
+            print(stackDates)
+        }
+         
+         if let mostCommonDate = modeDate(from: stackDates) {
+             print("Most common date: \(mostCommonDate)")
+             detectedExpiryDate = mostCommonDate
+             stackDates = []
+         }
         guard let productName = detectedProductName, let date = detectedExpiryDate else { return }
         
         isProcessing = false
@@ -329,6 +349,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         detectedExpiryDate = nil
         detectedDateArea = nil
         showAlert = false
+        stackDates = []
         startSession()
     }
     
