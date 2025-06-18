@@ -392,7 +392,7 @@ import Vision
 import SwiftUI
 import CoreHaptics
 
-class CameraViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
     @Published var detectedProductName: String?
     @Published var detectedExpiryDate: Date?

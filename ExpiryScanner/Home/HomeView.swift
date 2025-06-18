@@ -436,7 +436,7 @@ struct CameraView: View {
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-    var viewModel: CameraViewModel
+    var viewModel: HomeViewModel
     
     func makeUIViewController(context: Context) -> UIViewController {
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {

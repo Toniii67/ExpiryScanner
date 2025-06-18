@@ -9,10 +9,10 @@ import AVFoundation
 import UIKit
 
 class CameraViewController: UIViewController {
-    private let viewModel: CameraViewModel
+    private let viewModel: HomeViewModel
     private let previewLayer: AVCaptureVideoPreviewLayer
     
-    init(viewModel: CameraViewModel){
+    init(viewModel: HomeViewModel){
         self.viewModel = viewModel
         self.previewLayer = AVCaptureVideoPreviewLayer(session: viewModel.captureSession)
         super.init(nibName: nil, bundle: nil)
