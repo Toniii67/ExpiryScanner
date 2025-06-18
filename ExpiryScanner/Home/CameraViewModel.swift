@@ -13,17 +13,15 @@ import Vision
 import SwiftUI
 import CoreHaptics
 
-@Observable
-class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    
+class CameraViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
-    var showAlert = false
-    var detectedProductName: String?
-    var detectedExpiryDate: Date?
-    var isProcessing = true
-    var guidanceText = "Arahkan kamera ke produk"
-    var isSessionRunning = false
-    var stackDates: [Date] = []
+    @Published var showAlert = false
+    @Published var showDoneAlert = false
+    @Published var detectedProductName: String?
+    @Published var detectedExpiryDate: Date?
+    @Published var isProcessing = true
+    @Published var guidanceText = "Posisikan hp di tengah dada"
+    @Published var isSessionRunning = false
     
     // MARK: - Haptic Enum
     enum CustomHapticType {
@@ -43,10 +41,8 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var continuousScanningTimer: Timer?
     
-    
     private var isProductInFrame = false {
         didSet {
-            // This now correctly calls the methods inside this ViewModel
             if oldValue != isProductInFrame {
                 if isProductInFrame {
                     startScanningFeedback()
@@ -72,7 +68,6 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
                 self.setupCaptureSession()
             }
             
-            // CORRECTED LOGIC: Start only if it's NOT running.
             if !self.captureSession.isRunning {
                 self.captureSession.startRunning()
                 DispatchQueue.main.async {
@@ -97,7 +92,6 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    /// Toggles the camera session on or off based on its current state.
     func toggleSession() {
         if isSessionRunning {
             stopSession()
@@ -160,7 +154,6 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation).perform(request)
     }
     
-    
     private func getImageOrientation() -> CGImagePropertyOrientation {
         let deviceOrientation = UIDevice.current.orientation
         switch deviceOrientation {
@@ -195,11 +188,6 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         
         print("DEBUG: Found \(observations.count) observations")
         
-        //        for (index, obs) in observations.enumerated() {
-        //            print("DEBUG: Observation \(index): confidence = \(obs.confidence), boundingBox = \(obs.boundingBox)")
-        //            print("DEBUG: Labels: \(obs.labels.map { "\($0.identifier): \($0.confidence)" })")
-        //        }
-        
         let filteredResults = observations.filter { $0.confidence > 0.3 }
         
         guard let bestResult = filteredResults.first else {
@@ -219,9 +207,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         DispatchQueue.main.async {
             self.isProductInFrame = true
             self.detectedProductName = productName
-            
             self.providePositionalGuidance(for: bestResult.boundingBox)
-            
             self.checkForCompletion()
         }
     }
@@ -234,16 +220,16 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             guidanceText = "Dekatkan sedikit"
         } else if area > 0.75 {
             guidanceText = "Jauhkan sedikit"
-        } else if area < 0.3 {
+        } else if centerX < 0.3 {
             guidanceText = "Geser sedikit ke kanan"
-        } else if area > 0.7 {
+        } else if centerX > 0.7 {
             guidanceText = "Geser sedikit ke kiri"
         } else {
             guidanceText = "Pertahankan posisi"
         }
     }
     
-    private func handleExpiryDateAreaDetection(request: VNRequest, error: Error?){
+    private func handleExpiryDateAreaDetection(request: VNRequest, error: Error?) {
         print("DEBUG: handleExpiryDateAreaDetection called")
         if let error = error {
             print("ERROR in area detection: \(error)")
@@ -339,18 +325,25 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         let spokenDate = dateFormatter.string(from: date)
         
         let speechText = "\(productName) kadaluwarsa pada tanggal \(spokenDate)"
-        speak(text: speechText) // Use the internal speak method
+        speak(text: speechText)
         
         showAlert = true
     }
     
-    func resetDetection(){
-        // nama produk
+    func resetDetection() {
+        detectedProductName = nil
         detectedExpiryDate = nil
         detectedDateArea = nil
         showAlert = false
         stackDates = []
         startSession()
+    }
+    
+    func markAsDone() {
+        showAlert = false
+        showDoneAlert = true
+        speak(text: "Pemindaian selesai")
+        playHaptic(type: .success)
     }
     
     // MARK: - Haptic Feedback Implementation
@@ -369,7 +362,7 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    private func playHaptic(type: CustomHapticType) {
+    func playHaptic(type: CustomHapticType) {
         guard let hapticEngine = hapticEngine else { return }
         
         do {
@@ -387,7 +380,6 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
             let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
             let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0)
-            // CORRECTED: Pass an empty array
             return try CHHapticPattern(events: [event], parameters: [])
             
         case .error:
@@ -395,13 +387,11 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
             let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8)
             let event1 = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0)
             let event2 = CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0.15)
-            // CORRECTED: Pass an empty array
             return try CHHapticPattern(events: [event1, event2], parameters: [])
             
         case .fail:
             let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8)
             let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
-            // CORRECTED: Pass parameters inside the event initializer
             let continuousEvent = CHHapticEvent(
                 eventType: .hapticContinuous,
                 parameters: [intensity, sharpness],
@@ -429,8 +419,9 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         continuousScanningTimer?.invalidate()
         continuousScanningTimer = nil
     }
+    
     // MARK: - Speech Synthesis
-    private func speak(text: String) {
+    func speak(text: String) {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
             try AVAudioSession.sharedInstance().setActive(true)
@@ -448,4 +439,3 @@ class CameraViewModel: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         speechSynthesizer.speak(utterance)
     }
 }
-
