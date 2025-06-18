@@ -246,7 +246,11 @@ import UIKit
 
 struct NativeAlertController: UIViewControllerRepresentable {
     @Binding var finalAlertType: CameraView.FinalAlertType?
-    let viewModel: CameraViewModel
+    @Binding var isPresented: Bool
+    @Binding var showDoneAlert: Bool
+    let title: String
+    let message: String?
+    let viewModel: HomeViewModel
 
     func makeUIViewController(context: Context) -> UIViewController {
         let controller = UIViewController()

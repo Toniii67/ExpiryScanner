@@ -208,7 +208,15 @@ import SwiftUI
 import UIKit
 import AVFoundation
 
-struct CameraView: View {
+struct HomeView: View {
+    // @StateObject private var viewModel = HomeViewModel()
+    // @State private var showGuidanceText = true
+    // @State private var showStatusPopup = false
+    // @State private var currentGuidanceText = "Posisikan hp di tengah dada"
+    // @State private var guidanceLoopCount = 0
+    // @State private var statusLoopCount = 0
+    // @AccessibilityFocusState private var focusStatusPopup: Bool
+
     @StateObject private var viewModel: CameraViewModel
     @State private var showGuidanceAlert: Bool = false
     @State private var currentGuidanceText = NSLocalizedString("Letakan hp di tengah dada dan hanya 1 barang di depan camera anda untuk hasil terbaik. Sesuikan jarak hp dan barang yang ingin di scan", comment: "Initial guidance text")
@@ -233,7 +241,7 @@ struct CameraView: View {
             }
         }
     }
-    
+
     // Function to trigger success haptic feedback
     private func triggerSuccessHaptic() {
         let generator = UINotificationFeedbackGenerator()
@@ -436,7 +444,7 @@ struct CameraView: View {
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-    var viewModel: CameraViewModel
+    var viewModel: HomeViewModel
     
     func makeUIViewController(context: Context) -> UIViewController {
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
@@ -452,6 +460,6 @@ private struct CameraViewControllerRepresentable: UIViewControllerRepresentable 
 }
 
 #Preview {
-    CameraView()
-        .previewDisplayName("CameraView Preview")
+    HomeView()
+    .previewDisplayName("CameraView Preview")
 }
