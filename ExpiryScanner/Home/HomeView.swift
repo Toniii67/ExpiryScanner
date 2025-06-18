@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-struct CameraView: View {
-    @StateObject private var viewModel = CameraViewModel()
+struct HomeView: View {
+    @StateObject private var viewModel = HomeViewModel()
     @State private var showGuidanceText = true
     @State private var showStatusPopup = false
     @State private var currentGuidanceText = "Posisikan hp di tengah dada"
@@ -227,7 +227,7 @@ struct CameraView: View {
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-    var viewModel: CameraViewModel
+    var viewModel: HomeViewModel
     
     func makeUIViewController(context: Context) -> CameraViewController {
         CameraViewController(viewModel: viewModel)
@@ -237,5 +237,5 @@ private struct CameraViewControllerRepresentable: UIViewControllerRepresentable 
 }
 
 #Preview {
-    CameraView()
+    HomeView()
 }

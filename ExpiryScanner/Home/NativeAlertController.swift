@@ -6,7 +6,7 @@ struct NativeAlertController: UIViewControllerRepresentable {
     @Binding var showDoneAlert: Bool
     let title: String
     let message: String?
-    let viewModel: CameraViewModel
+    let viewModel: HomeViewModel
 
     func makeUIViewController(context: Context) -> UIViewController {
         let controller = UIViewController()

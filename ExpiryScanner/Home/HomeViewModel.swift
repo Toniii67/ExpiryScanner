@@ -5,7 +5,7 @@
 //  Created by Franco Antonio Pranata on 09/06/25.
 //
 
-
+/// Revised and Refractor by Victor
 // cobacoba
 
 import AVFoundation
@@ -13,7 +13,7 @@ import Vision
 import SwiftUI
 import CoreHaptics
 
-class CameraViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
     @Published var showAlert = false
     @Published var showDoneAlert = false
