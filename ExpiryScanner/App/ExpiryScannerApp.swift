@@ -11,7 +11,7 @@ import SwiftUI
 struct ExpiryScannerApp: App {
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            CameraView()
         }
     }
 }
