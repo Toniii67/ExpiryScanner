@@ -292,7 +292,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 
     private func checkForCompletion(){
         print("DEBUG: checkForCompletion called")
-        if stackDates.count < 10 {
+        if stackDates.count < 5 {
             print("DEBUG: Not enough dates to complete")
             return
         } else {
