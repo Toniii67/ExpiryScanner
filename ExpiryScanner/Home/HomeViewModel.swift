@@ -63,9 +63,9 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 self.captureSession.startRunning()
                 DispatchQueue.main.async {
                     self.isSessionRunning = true
+                    self.isProcessing = true
                 }
             }
-            self.isProcessing = true
         }
     }
     
