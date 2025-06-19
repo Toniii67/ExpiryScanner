@@ -394,9 +394,12 @@ import CoreHaptics
 
 class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
+    @Published var showAlert = false
+    @Published var showDoneAlert = false
     @Published var detectedProductName: String?
     @Published var detectedExpiryDate: Date?
     @Published var isProcessing = true
+    @Published var guidanceText = "Posisikan hp di tengah dada"
     @Published var isSessionRunning = false
     
     // MARK: - Haptic Enum
@@ -432,18 +435,12 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     // MARK: - Initializer
     override init() {
         super.init()
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
-            setupVision()
-            setupHaptics()
-        }
+        setupVision()
+        setupHaptics()
     }
     
     // MARK: - Session Control
     func startSession() {
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
-            print("CameraViewModel: Skipping startSession in preview")
-            return
-        }
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             if self.captureSession.inputs.isEmpty {
@@ -510,7 +507,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             
             self.visionRequest = [productNameRequest, expiryDateRequest]
         } catch {
-            print("Failed to load model: \(error)")
+            fatalError("Failed to load model: \(error)")
         }
     }
     
@@ -554,6 +551,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             playHaptic(type: .error)
             DispatchQueue.main.async {
                 self.isProductInFrame = false
+                self.guidanceText = "Error dalam deteksi produk"
             }
             return
         }
@@ -562,6 +560,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             print("DEBUG: No observations found")
             DispatchQueue.main.async {
                 self.isProductInFrame = false
+                self.guidanceText = "Arahkan kamera ke produk"
             }
             return
         }
@@ -574,6 +573,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             print("DEBUG: No results above confidence threshold")
             DispatchQueue.main.async {
                 self.isProductInFrame = false
+                self.guidanceText = "Arahkan kamera ke produk"
             }
             return
         }
@@ -586,6 +586,25 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         DispatchQueue.main.async {
             self.isProductInFrame = true
             self.detectedProductName = productName
+            self.providePositionalGuidance(for: bestResult.boundingBox)
+            self.checkForCompletion()
+        }
+    }
+    
+    private func providePositionalGuidance(for box: CGRect) {
+        let area = box.width * box.height
+        let centerX = box.midX
+        
+        if area < 0.15 {
+            guidanceText = "Dekatkan sedikit"
+        } else if area > 0.75 {
+            guidanceText = "Jauhkan sedikit"
+        } else if centerX < 0.3 {
+            guidanceText = "Geser sedikit ke kanan"
+        } else if centerX > 0.7 {
+            guidanceText = "Geser sedikit ke kiri"
+        } else {
+            guidanceText = "Pertahankan posisi"
         }
     }
     
@@ -601,6 +620,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         DispatchQueue.main.async {
             self.detectedDateArea = foundArea
+            self.guidanceText = (foundArea != nil) ? "Area tanggal terdeteksi, tahan posisi" : "Arahkan kamera ke produk"
         }
     }
     
@@ -700,8 +720,9 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func markAsDone() {
-        let dismissalText = NSLocalizedString("Pemindaian selesai", comment: "Done dismissal text")
-        speak(text: dismissalText)
+        showAlert = false
+        showDoneAlert = true
+        speak(text: "Pemindaian selesai")
         playHaptic(type: .success)
     }
     
@@ -798,3 +819,4 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         speechSynthesizer.speak(utterance)
     }
 }
+
