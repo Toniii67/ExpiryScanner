@@ -2,17 +2,21 @@ import AVFoundation
 import Vision
 import SwiftUI
 import CoreHaptics
+import Combine
 
+@MainActor
 class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
-    @Published var showAlert = false
-    @Published var showDoneAlert = false
+    //    @Published var showAlert = false
+    //    @Published var showDoneAlert = false
     @Published var detectedProductName: String?
     @Published var detectedExpiryDate: Date?
     @Published var isProcessing = true
     @Published var guidanceText = "Posisikan hp di tengah dada"
     @Published var isSessionRunning = false
     @Published var stackDates: [Date] = []
+    let showScanResultAlertSubject = PassthroughSubject<(name: String, date: Date), Never>()
+    let showDoneAlertSubject = PassthroughSubject<Void, Never>()
     
     // MARK: - Haptic Enum
     enum CustomHapticType {
@@ -131,16 +135,16 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         let focusedTextRequest = VNRecognizeTextRequest(completionHandler: handleFocusedTextForDate)
         focusedTextRequest.recognitionLevel = .accurate
-
+        
         if let dateArea = self.detectedDateArea {
             focusedTextRequest.regionOfInterest = dateArea
         } else {
             focusedTextRequest.regionOfInterest = CGRect(x: 0, y: 0, width: 1, height: 1) // full frame
         }
-    
+        
         request.append(focusedTextRequest)
-
-    
+        
+        
         let orientation = getImageOrientation()
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation).perform(request)
     }
@@ -238,21 +242,21 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     private func handleFocusedTextForDate(request: VNRequest, error: Error?) {
         print("DEBUG: handleFocusedTextForDate called")
-
+        
         if let error = error {
             print("ERROR in text recognition: \(error)")
             return
         }
-
+        
         let recognizedText = (request.results as? [VNRecognizedTextObservation] ?? [])
             .compactMap { $0.topCandidates(1).first?.string }
             .joined(separator: " ")
         
         print("DEBUG: Recognized text: '\(recognizedText)'")
-
+        
         classifyText(recognizedText)
     }
-
+    
     private func classifyText(_ text: String) {
         print("DEBUG: Classifying text: '\(text)'")
         
@@ -289,7 +293,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         return counts.max { $0.value < $1.value }?.key
     }
-
+    
     private func checkForCompletion(){
         print("DEBUG: checkForCompletion called")
         if stackDates.count < 5 {
@@ -298,43 +302,43 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         } else {
             print(stackDates)
         }
-         
-         if let mostCommonDate = modeDate(from: stackDates) {
-             print("Most common date: \(mostCommonDate)")
-             detectedExpiryDate = mostCommonDate
-             stackDates = []
-         }
+        
+        if let mostCommonDate = modeDate(from: stackDates) {
+            print("Most common date: \(mostCommonDate)")
+            detectedExpiryDate = mostCommonDate
+            stackDates = []
+        }
         guard let productName = detectedProductName, let date = detectedExpiryDate else { return }
         
         isProcessing = false
         stopSession()
         playHaptic(type: .success)
         
+        showScanResultAlertSubject.send((name: productName, date: date))
+        
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "id_ID")
         dateFormatter.setLocalizedDateFormatFromTemplate("d MMMM yyyy")
         let spokenDate = dateFormatter.string(from: date)
         
-        let speechText = "\(productName) kadaluwarsa pada tanggal \(spokenDate)"
-        speak(text: speechText)
-        
-        showAlert = true
+//        showAlert = true
     }
     
     func resetDetection() {
         detectedProductName = nil
         detectedExpiryDate = nil
         detectedDateArea = nil
-        showAlert = false
+//        showAlert = false
         stackDates = []
         isProcessing = true
         startSession()
     }
     
     func markAsDone() {
-        showAlert = false
-        showDoneAlert = true
-        speak(text: "Pemindaian selesai")
+//        showAlert = false
+//        showDoneAlert = true
+        //        speak(text: "Pemindaian selesai")
+        showDoneAlertSubject.send()
         playHaptic(type: .success)
     }
     
@@ -413,22 +417,22 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     // MARK: - Speech Synthesis
-    func speak(text: String) {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Could not configure audio session for speech: \(error.localizedDescription)")
-        }
-        
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "id-ID")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        
-        if speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
-        }
-        speechSynthesizer.speak(utterance)
-    }
+    //    func speak(text: String) {
+    //        do {
+    //            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
+    //            try AVAudioSession.sharedInstance().setActive(true)
+    //        } catch {
+    //            print("Could not configure audio session for speech: \(error.localizedDescription)")
+    //        }
+    //
+    //        let utterance = AVSpeechUtterance(string: text)
+    //        utterance.voice = AVSpeechSynthesisVoice(language: "id-ID")
+    //        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+    //
+    //        if speechSynthesizer.isSpeaking {
+    //            speechSynthesizer.stopSpeaking(at: .immediate)
+    //        }
+    //        speechSynthesizer.speak(utterance)
+    //    }
 }
 

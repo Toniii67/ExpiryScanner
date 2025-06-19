@@ -36,7 +36,7 @@ struct NativeAlertController: UIViewControllerRepresentable {
                 isPresented = false
                 let dismissalText = "Alert ditutup"
                 UIAccessibility.post(notification: .announcement, argument: dismissalText)
-                viewModel.speak(text: dismissalText)
+//                viewModel.speak(text: dismissalText)
                 viewModel.playHaptic(type: .pulse)
             }
             scanAgainAction.accessibilityLabel = "Pindai lagi"
@@ -58,7 +58,7 @@ struct NativeAlertController: UIViewControllerRepresentable {
                     // Announce alert
                     let announcement = "\(title). \(message ?? "")"
                     UIAccessibility.post(notification: .announcement, argument: announcement)
-                    viewModel.speak(text: announcement)
+//                    viewModel.speak(text: announcement)
                     viewModel.playHaptic(type: .success)
                     UIAccessibility.post(notification: .screenChanged, argument: alert.view)
                 }
@@ -84,7 +84,7 @@ struct NativeAlertController: UIViewControllerRepresentable {
                 showDoneAlert = false
                 let dismissalText = "Alert ditutup"
                 UIAccessibility.post(notification: .announcement, argument: dismissalText)
-                viewModel.speak(text: dismissalText)
+//                viewModel.speak(text: dismissalText)
                 viewModel.playHaptic(type: .pulse)
             }
             okAction.accessibilityLabel = "OK"
@@ -98,7 +98,7 @@ struct NativeAlertController: UIViewControllerRepresentable {
                     // Announce second alert
                     let announcement = "Pemindaian Selesai. Pemindaian telah ditandai sebagai selesai."
                     UIAccessibility.post(notification: .announcement, argument: announcement)
-                    viewModel.speak(text: announcement)
+//                    viewModel.speak(text: announcement)
                     viewModel.playHaptic(type: .success)
                     UIAccessibility.post(notification: .screenChanged, argument: doneAlert.view)
                 }
