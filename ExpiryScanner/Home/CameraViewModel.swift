@@ -8,7 +8,6 @@
 //
 //// cobacoba
 //
-
 //import AVFoundation
 //import Vision
 //import SwiftUI
@@ -388,18 +387,19 @@
 //        speechSynthesizer.speak(utterance)
 //    }
 //}
-
 import AVFoundation
 import Vision
 import SwiftUI
 import CoreHaptics
 
-class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+class CameraViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: - Published Properties
     @Published var detectedProductName: String?
     @Published var detectedExpiryDate: Date?
     @Published var isProcessing = true
     @Published var isSessionRunning = false
+    @Published var showAlert = false
+    @Published var showDoneAlert = false
     
     // MARK: - Haptic Enum
     enum CustomHapticType {
@@ -437,6 +437,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
             setupVision()
             setupHaptics()
+            startSession() // Start session early
         }
     }
     
@@ -456,6 +457,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 self.captureSession.startRunning()
                 DispatchQueue.main.async {
                     self.isSessionRunning = true
+                    print("CameraViewModel: Session started")
                 }
             }
             self.isProcessing = true
@@ -471,6 +473,7 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 self.captureSession.stopRunning()
                 DispatchQueue.main.async {
                     self.isSessionRunning = false
+                    print("CameraViewModel: Session stopped")
                 }
             }
         }
