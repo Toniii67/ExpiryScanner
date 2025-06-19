@@ -1,95 +1,123 @@
-//
-//  HomeView.swift
-//  ExpiryScanner
-//
-//  Created by Victor Chandra on 16/06/25.
-//
-
 import SwiftUI
+import UIKit
+import AVFoundation
 
 struct HomeView: View {
-    @State private var viewModel = CameraViewModel()
+    @StateObject private var viewModel = HomeViewModel()
+    @State private var currentAlert: AlertType? = nil
+    @State private var currentGuidanceText = NSLocalizedString("Letakan hp di tengah dada dan hanya 1 barang di depan camera anda untuk hasil terbaik. Sesuikan jarak hp dan barang yang ingin di scan", comment: "Initial guidance text")
+    @State private var showCustomAlert: Bool = false
+    
+    enum AlertType: Identifiable {
+        case guidance
+        
+        var id: String {
+            "guidance"
+        }
+    }
+    
+    // Function to trigger success haptic feedback
+    private func triggerSuccessHaptic() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+    }
+    
+    // Function to speak text in Indonesian as fallback
+    private func speakInIndonesian(_ text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "id-ID")
+        utterance.rate = 0.5
+        let synthesizer = AVSpeechSynthesizer()
+        synthesizer.stopSpeaking(at: .immediate)
+        synthesizer.speak(utterance)
+    }
     
     var body: some View {
         ZStack {
             CameraViewControllerRepresentable(viewModel: viewModel)
-               .ignoresSafeArea()
+                .ignoresSafeArea()
             
             VStack {
-                Spacer()
-                //Buat Frame Bracket
-                scannerFrameView
-                   .frame(width: 280, height: 500)
-                   .padding(.bottom, 20)
-                
-                Text(viewModel.guidanceText)
-                   .font(.headline)
-                   .foregroundColor(.white)
-                   .padding()
-                   .background(Color.black.opacity(0.6))
-                   .clipShape(Capsule())
-                   .padding(.top)
-                
-                Spacer()
-                
-                // New instructional text from the design.
-                Text("Tombol mulai terletak di bawah screen")
-                   .font(.body)
-                   .fontWeight(.bold)
-                   .foregroundColor(.red)
-                   .multilineTextAlignment(.center)
-                   .padding(.top, 20)
-                   .padding(.bottom, 20)
-                
-                // New "Stop Scanning" button from the design.
-                Button(action: {
-                    viewModel.toggleSession()
-                }) {
-                    Text(viewModel.isSessionRunning ? "Stop Scanning" : "Start Scanning")
-                       .font(.headline)
-                       .fontWeight(.bold)
-                       .foregroundColor(.primary)
-                       .padding()
-                       .frame(maxWidth:.infinity)
-                       .background(.thinMaterial)
-                       .clipShape(Capsule())
+                // Custom Alert
+                if showCustomAlert {
+                    CustomAlertView(
+                        text: NSLocalizedString("Silakan tahan posisi Anda dan putar item secara perlahan ke segala arah selama 10 detik saat proses pemindaian berlangsung", comment: "Custom alert text"),
+                        onDismiss: {
+                            triggerSuccessHaptic()
+                            showCustomAlert = false
+                        }
+                    )
+                    .padding(.top, 20)
                 }
-               .padding(.horizontal, 40)
-               .padding(.bottom, 30)
+                
+                // Scanner Frame
+                scannerFrameView
+                    .frame(width: 280, height: 500)
+                
+                Spacer()
             }
-           .padding()
+            .padding()
+            .background(
+                NativeAlertController(
+                    isPresented: $viewModel.showAlert,
+                    showDoneAlert: $viewModel.showDoneAlert,
+                    title: NSLocalizedString("Hasil Pemindaian", comment: "Scan result title"),
+                    message: {
+                        if let date = viewModel.detectedExpiryDate, let name = viewModel.detectedProductName {
+                            return "\(name) Kadaluwarsa pada \(date.formatted(date: .long, time: .omitted))"
+                        }
+                        return nil
+                    }(),
+                    viewModel: viewModel
+                )
+            )
         }
-        
-        Spacer()
-        
-       .onAppear{
-            let text = "Arahkan kamera ke produk"
-            UIAccessibility.post(notification:.screenChanged, argument: text)
+        .alert(item: $currentAlert) { _ in
+            Alert(
+                title: Text(NSLocalizedString("Petunjuk Pemindaian", comment: "Guidance alert title")),
+                message: Text(currentGuidanceText),
+                dismissButton: .default(Text(NSLocalizedString("OK", comment: "Dismiss button"))) {
+                    print("Guidance alert dismissed")
+                    triggerSuccessHaptic()
+                    currentAlert = nil
+                    // Check if scan failed
+                    if viewModel.detectedProductName == nil && viewModel.detectedExpiryDate == nil {
+                        showCustomAlert = true
+                        let customText = NSLocalizedString("Silakan tahan posisi Anda dan putar item secara perlahan ke segala arah selama 10 detik saat proses pemindaian berlangsung", comment: "Custom alert text")
+                        UIAccessibility.post(notification: .announcement, argument: customText)
+                        speakInIndonesian(customText)
+                    }
+                }
+            )
         }
-       .alert("Hasil Pemindaian", isPresented: $viewModel.showAlert){
-            Button("Pindai lagi"){
-                viewModel.resetDetection()
+        .onAppear {
+            let text = NSLocalizedString("Letakan hp di tengah dada dan hanya 1 barang di depan camera anda untuk hasil terbaik. Sesuikan jarak hp dan barang yang ingin di scan", comment: "Initial guidance text")
+            currentGuidanceText = text
+            print("Setting initial guidance: \(text)")
+            // Delay to ensure view initialization
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                currentAlert = .guidance
+                UIAccessibility.post(notification: .screenChanged, argument: text)
+                speakInIndonesian(text)
             }
-        } message: {
-            if let date = viewModel.detectedExpiryDate, let name = viewModel.detectedProductName {
-                Text("\(name) Kadaluwarsa pada \(date.formatted(date:.long, time:.omitted))")
-            }
+            viewModel.startSession()
         }
     }
-    
-    /// A private computed property that builds the custom scanner frame.
+        
+    // Scanner Frame
     private var scannerFrameView: some View {
         GeometryReader { geometry in
-            let strokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round)
-            let dashedStrokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round, dash: [1, 2])
+            let strokeStyle = StrokeStyle(lineWidth: 10, lineCap: .round)
+            let dashedStrokeStyle = StrokeStyle(lineWidth: 10, lineCap: .round, dash: [1, 2])
             let color = Color.white
 
             ZStack {
                 // Corner Brackets
-                CornerBracket(corner:.topLeft, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.topRight, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.bottomLeft, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.bottomRight, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .topLeft, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .topRight, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .bottomLeft, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .bottomRight, lineLength: 50).stroke(style: strokeStyle)
 
                 // Dashed Lines
                 Path { path in
@@ -112,17 +140,16 @@ struct HomeView: View {
                     path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.7))
                 }.stroke(style: dashedStrokeStyle)
             }
-           .foregroundColor(color)
+            .foregroundColor(color)
         }
-       .accessibilityElement(children:.combine)
-       .accessibilityLabel("Object detection frame")
-       .accessibilityHint("Position the item you want to scan inside this frame.")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(NSLocalizedString("Object detection frame", comment: "Scanner frame accessibility label"))
+        .accessibilityHint(NSLocalizedString("Position the item you want to scan inside this frame.", comment: "Scanner frame accessibility hint"))
     }
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-//    @ObservedObject
-    var viewModel: CameraViewModel
+    var viewModel: HomeViewModel
     
     func makeUIViewController(context: Context) -> CameraViewController {
         CameraViewController(viewModel: viewModel)
