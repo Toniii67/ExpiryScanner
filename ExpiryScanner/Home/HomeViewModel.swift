@@ -139,13 +139,13 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         var request = self.visionRequest
         
+
         if let dateArea = self.detectedDateArea {
             let focusedTextRequest = VNRecognizeTextRequest(completionHandler: handleFocusedTextForDate)
             focusedTextRequest.recognitionLevel = .accurate
             focusedTextRequest.regionOfInterest = dateArea
             request.append(focusedTextRequest)
         }
-        
         let orientation = getImageOrientation()
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation).perform(request)
     }
