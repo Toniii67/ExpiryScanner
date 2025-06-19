@@ -23,6 +23,19 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		8BDA4D642E043FD30029ACCA /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		ECBE8BE62DF675FD00EB96EF /* ExpiryScanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExpiryScanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ECBE8BF62DF675FE00EB96EF /* ExpiryScannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExpiryScannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -30,7 +43,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		ECF318BC2DF8E562005358B0 /* Exceptions for "ExpiryScanner" folder in "ExpiryScanner" target */ = {
+		8BDA4D4E2E043F8F0029ACCA /* Exceptions for "ExpiryScanner" folder in "ExpiryScanner" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -40,10 +53,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		ECBE8BE82DF675FD00EB96EF /* ExpiryScanner */ = {
+		8BDA4D402E043F8F0029ACCA /* ExpiryScanner */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				ECF318BC2DF8E562005358B0 /* Exceptions for "ExpiryScanner" folder in "ExpiryScanner" target */,
+				8BDA4D4E2E043F8F0029ACCA /* Exceptions for "ExpiryScanner" folder in "ExpiryScanner" target */,
 			);
 			path = ExpiryScanner;
 			sourceTree = "<group>";
@@ -78,7 +91,7 @@
 		ECBE8BDD2DF675FD00EB96EF = {
 			isa = PBXGroup;
 			children = (
-				ECBE8BE82DF675FD00EB96EF /* ExpiryScanner */,
+				8BDA4D402E043F8F0029ACCA /* ExpiryScanner */,
 				ECBE8BE72DF675FD00EB96EF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -103,13 +116,14 @@
 				ECBE8BE22DF675FD00EB96EF /* Sources */,
 				ECBE8BE32DF675FD00EB96EF /* Frameworks */,
 				ECBE8BE42DF675FD00EB96EF /* Resources */,
+				8BDA4D642E043FD30029ACCA /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				ECBE8BE82DF675FD00EB96EF /* ExpiryScanner */,
+				8BDA4D402E043F8F0029ACCA /* ExpiryScanner */,
 			);
 			name = ExpiryScanner;
 			packageProductDependencies = (
@@ -165,7 +179,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					ECBE8BE52DF675FD00EB96EF = {
