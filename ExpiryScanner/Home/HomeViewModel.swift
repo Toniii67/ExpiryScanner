@@ -6,9 +6,6 @@ import Combine
 
 @MainActor
 class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    // MARK: - Published Properties
-    //    @Published var showAlert = false
-    //    @Published var showDoneAlert = false
     @Published var detectedProductName: String?
     @Published var detectedExpiryDate: Date?
     @Published var isProcessing = true
@@ -18,7 +15,6 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     let showScanResultAlertSubject = PassthroughSubject<(name: String, date: Date), Never>()
     let showDoneAlertSubject = PassthroughSubject<Void, Never>()
     
-    // MARK: - Haptic Enum
     enum CustomHapticType {
         case success
         case error
@@ -26,7 +22,6 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         case pulse
     }
     
-    // MARK: - Private Properties
     let captureSession = AVCaptureSession()
     private var visionRequest = [VNRequest]()
     private let videoOutput = AVCaptureVideoDataOutput()
@@ -48,14 +43,12 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    // MARK: - Initializer
     override init() {
         super.init()
         setupVision()
         setupHaptics()
     }
     
-    // MARK: - Session Control
     func startSession() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
@@ -95,7 +88,6 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    // MARK: - Setup Methods
     private func setupCaptureSession() {
         guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
               let deviceInput = try? AVCaptureDeviceInput(device: videoDevice),
@@ -127,7 +119,6 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    // MARK: - Vision Handlers & Logic
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard isProcessing, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
@@ -296,7 +287,8 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     private func checkForCompletion(){
         print("DEBUG: checkForCompletion called")
-        if stackDates.count < 5 {
+        
+        if stackDates.count < 10 {
             print("DEBUG: Not enough dates to complete")
             return
         } else {
@@ -320,29 +312,22 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         dateFormatter.locale = Locale(identifier: "id_ID")
         dateFormatter.setLocalizedDateFormatFromTemplate("d MMMM yyyy")
         let spokenDate = dateFormatter.string(from: date)
-        
-//        showAlert = true
     }
     
     func resetDetection() {
         detectedProductName = nil
         detectedExpiryDate = nil
         detectedDateArea = nil
-//        showAlert = false
         stackDates = []
         isProcessing = true
         startSession()
     }
     
     func markAsDone() {
-//        showAlert = false
-//        showDoneAlert = true
-        //        speak(text: "Pemindaian selesai")
         showDoneAlertSubject.send()
         playHaptic(type: .success)
     }
     
-    // MARK: - Haptic Feedback Implementation
     private func setupHaptics() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         do {
@@ -415,24 +400,5 @@ class HomeViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         continuousScanningTimer?.invalidate()
         continuousScanningTimer = nil
     }
-    
-    // MARK: - Speech Synthesis
-    //    func speak(text: String) {
-    //        do {
-    //            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
-    //            try AVAudioSession.sharedInstance().setActive(true)
-    //        } catch {
-    //            print("Could not configure audio session for speech: \(error.localizedDescription)")
-    //        }
-    //
-    //        let utterance = AVSpeechUtterance(string: text)
-    //        utterance.voice = AVSpeechSynthesisVoice(language: "id-ID")
-    //        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-    //
-    //        if speechSynthesizer.isSpeaking {
-    //            speechSynthesizer.stopSpeaking(at: .immediate)
-    //        }
-    //        speechSynthesizer.speak(utterance)
-    //    }
 }
 

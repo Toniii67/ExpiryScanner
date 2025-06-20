@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-/// A custom shape for the L-shaped corner brackets of the scanner frame.
 struct CornerBracket: Shape {
     var corner: UIRectCorner
     var lineLength: CGFloat = 50
