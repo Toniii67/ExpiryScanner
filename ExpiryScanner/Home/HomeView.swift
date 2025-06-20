@@ -1,133 +1,138 @@
-//
-//  HomeView.swift
-//  ExpiryScanner
-//
-//  Created by Victor Chandra on 16/06/25.
-//
-
 import SwiftUI
+import UIKit
+import AVFoundation
 
 struct HomeView: View {
-    @State private var viewModel = CameraViewModel()
-    
+    @StateObject private var viewModel = HomeViewModel()
+    @State private var showCustomAlert = false
+
+    // Alert state
+    @State private var showUIKitAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var alertActions: [UIAlertAction] = []
+
     var body: some View {
         ZStack {
             CameraViewControllerRepresentable(viewModel: viewModel)
-               .ignoresSafeArea()
-            
+                .ignoresSafeArea()
+
             VStack {
-                Spacer()
-                //Buat Frame Bracket
-                scannerFrameView
-                   .frame(width: 280, height: 500)
-                   .padding(.bottom, 20)
-                
-                Text(viewModel.guidanceText)
-                   .font(.headline)
-                   .foregroundColor(.white)
-                   .padding()
-                   .background(Color.black.opacity(0.6))
-                   .clipShape(Capsule())
-                   .padding(.top)
-                
-                Spacer()
-                
-                // New instructional text from the design.
-                Text("Tombol mulai terletak di bawah screen")
-                   .font(.body)
-                   .fontWeight(.bold)
-                   .foregroundColor(.red)
-                   .multilineTextAlignment(.center)
-                   .padding(.top, 20)
-                   .padding(.bottom, 20)
-                
-                // New "Stop Scanning" button from the design.
-                Button(action: {
-                    viewModel.toggleSession()
-                }) {
-                    Text(viewModel.isSessionRunning ? "Stop Scanning" : "Start Scanning")
-                       .font(.headline)
-                       .fontWeight(.bold)
-                       .foregroundColor(.primary)
-                       .padding()
-                       .frame(maxWidth:.infinity)
-                       .background(.thinMaterial)
-                       .clipShape(Capsule())
+                if showCustomAlert {
+                    CustomAlertView(
+                        text: NSLocalizedString("Silakan tahan posisi Anda dan putar item secara perlahan ke segala arah selama 10 detik saat proses pemindaian berlangsung", comment: "Custom alert text"),
+                        onDismiss: {
+                            triggerSuccessHaptic()
+                            showCustomAlert = false
+                        }
+                    )
+                    .padding(.top, 20)
                 }
-               .padding(.horizontal, 40)
-               .padding(.bottom, 30)
+
+                scannerFrameView
+                    .frame(width: 280, height: 500)
+
+                Spacer()
             }
-           .padding()
+            .padding()
+
+            if showUIKitAlert {
+                UIKitAlertController(
+                    title: alertTitle,
+                    message: alertMessage,
+                    actions: alertActions
+                )
+            }
         }
-        
-        Spacer()
-        
-       .onAppear{
-            let text = "Arahkan kamera ke produk"
-            UIAccessibility.post(notification:.screenChanged, argument: text)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                alertTitle = NSLocalizedString("Petunjuk Pemindaian", comment: "")
+                alertMessage = NSLocalizedString("Letakan hp di tengah dada dan hanya 1 barang di depan camera anda untuk hasil terbaik. Sesuaikan jarak hp dan barang yang ingin di scan", comment: "")
+                alertActions = [
+                    UIAlertAction(title: "OK", style: .default) { _ in
+                        
+                    }
+                ]
+                showUIKitAlert = true
+                viewModel.startSession()
+            }
         }
-       .alert("Hasil Pemindaian", isPresented: $viewModel.showAlert){
-            Button("Pindai lagi"){
-                viewModel.resetDetection()
-            }
-        } message: {
-            if let date = viewModel.detectedExpiryDate, let name = viewModel.detectedProductName {
-                Text("\(name) Kadaluwarsa pada \(date.formatted(date:.long, time:.omitted))")
-            }
+        .onReceive(viewModel.showScanResultAlertSubject) { data in
+            alertTitle = "Hasil Pemindaian"
+            alertMessage = "\(data.name) kadaluwarsa pada \(data.date.formatted(date: .long, time: .omitted))"
+            alertActions = [
+                UIAlertAction(title: "Pindai Lagi", style: .default) { _ in
+                    viewModel.resetDetection()
+                },
+                UIAlertAction(title: "Selesai", style: .default) { _ in
+                    viewModel.markAsDone()
+                }
+            ]
+            showUIKitAlert = true
+        }
+        .onReceive(viewModel.showDoneAlertSubject) { _ in
+            alertTitle = "Pemindaian Selesai"
+            alertMessage = ""
+            alertActions = [
+                UIAlertAction(title: "OK", style: .default) { _ in }
+            ]
+            showUIKitAlert = true
         }
     }
-    
-    /// A private computed property that builds the custom scanner frame.
+
+    private func triggerSuccessHaptic() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+    }
+
     private var scannerFrameView: some View {
         GeometryReader { geometry in
-            let strokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round)
-            let dashedStrokeStyle = StrokeStyle(lineWidth: 10, lineCap:.round, dash: [1, 2])
+            let strokeStyle = StrokeStyle(lineWidth: 10, lineCap: .round)
+            let dashedStrokeStyle = StrokeStyle(lineWidth: 10, lineCap: .round, dash: [1, 2])
             let color = Color.white
 
             ZStack {
-                // Corner Brackets
-                CornerBracket(corner:.topLeft, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.topRight, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.bottomLeft, lineLength: 50).stroke(style: strokeStyle)
-                CornerBracket(corner:.bottomRight, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .topLeft, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .topRight, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .bottomLeft, lineLength: 50).stroke(style: strokeStyle)
+                CornerBracket(corner: .bottomRight, lineLength: 50).stroke(style: strokeStyle)
 
-                // Dashed Lines
                 Path { path in
                     path.move(to: CGPoint(x: geometry.size.width * 0.3, y: 0))
                     path.addLine(to: CGPoint(x: geometry.size.width * 0.7, y: 0))
                 }.stroke(style: dashedStrokeStyle)
-                
+
                 Path { path in
                     path.move(to: CGPoint(x: geometry.size.width * 0.3, y: geometry.size.height))
                     path.addLine(to: CGPoint(x: geometry.size.width * 0.7, y: geometry.size.height))
                 }.stroke(style: dashedStrokeStyle)
-                
+
                 Path { path in
                     path.move(to: CGPoint(x: 0, y: geometry.size.height * 0.3))
                     path.addLine(to: CGPoint(x: 0, y: geometry.size.height * 0.7))
                 }.stroke(style: dashedStrokeStyle)
-                
+
                 Path { path in
                     path.move(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.3))
                     path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.7))
                 }.stroke(style: dashedStrokeStyle)
             }
-           .foregroundColor(color)
+            .foregroundColor(color)
         }
-       .accessibilityElement(children:.combine)
-       .accessibilityLabel("Object detection frame")
-       .accessibilityHint("Position the item you want to scan inside this frame.")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(NSLocalizedString("Object detection frame", comment: "Scanner frame accessibility label"))
+        .accessibilityHint(NSLocalizedString("Position the item you want to scan inside this frame.", comment: "Scanner frame accessibility hint"))
     }
 }
 
 private struct CameraViewControllerRepresentable: UIViewControllerRepresentable {
-//    @ObservedObject
-    var viewModel: CameraViewModel
-    
+    var viewModel: HomeViewModel
+
     func makeUIViewController(context: Context) -> CameraViewController {
         CameraViewController(viewModel: viewModel)
     }
-    
+
     func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
 }
 
